@@ -31,8 +31,25 @@ class MyWebServer(socketserver.BaseRequestHandler):
     
     def handle(self):
         self.data = self.request.recv(1024).strip()
-        print ("Got a request of: %s\n" % self.data)
-        self.request.sendall(bytearray("OK",'utf-8'))
+        print(self.data)
+        print(self.data.split())
+        method, target = self.data.split()[0:2]
+
+        # decode and split
+        print("===========================")
+        http_request = self.data.decode("utf-8").split("\r\n")
+        print(http_request)
+
+        # split the start line
+        http_method, request_target, http_version = http_request[0].split(" ")
+
+        if http_method == "GET":
+            print(http_method, request_target)
+            print ("Got a request of: %s\n" % self.data)
+            self.request.sendall(bytearray("200", "utf-8"))
+        else:
+            self.request.sendall(bytearray("405\n", 'utf-8'))
+        print("===========================")
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
