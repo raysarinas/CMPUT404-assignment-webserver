@@ -1,5 +1,5 @@
 #  coding: utf-8 
-import socketserver
+import socketserver, os
 
 # Copyright 2013 Abram Hindle, Eddie Antonio Santos
 # 
@@ -43,13 +43,25 @@ class MyWebServer(socketserver.BaseRequestHandler):
             self.request.sendall(bytearray("HTTP/1.1 405 Method Not Allowed\n", 'utf-8'))
             return
         
-        if request_target[-1] != "/":
+        if self.bad_path(request_target):
             self.request.sendall(bytearray("HTTP/1.1 301 Moved Permanently\n", 'utf-8'))
             return
         
-        request_target += "index.html"
-        
+        rel_path = "/www" + request_target
+        # https://stackoverflow.com/questions/5137497/find-current-directory-and-files-directory/44569198
+        real_path = os.path.realpath(os.getcwd())
+
+        if rel_path.endswith('/'):
+            rel_path += "index.html"
+        print(rel_path)
+        full_path = real_path + rel_path
+        print(full_path)
+
         self.request.sendall(bytearray("HTTP/1.1 200 OK\n", 'utf-8'))
+
+    def bad_path(self, request_target):
+        is_file = '.' in request_target.split("/")[-1]
+        return request_target[-1] != '/' and not is_file
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
