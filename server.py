@@ -31,25 +31,25 @@ class MyWebServer(socketserver.BaseRequestHandler):
     
     def handle(self):
         self.data = self.request.recv(1024).strip()
-        print(self.data)
-        print(self.data.split())
-        method, target = self.data.split()[0:2]
 
         # decode and split
-        print("===========================")
         http_request = self.data.decode("utf-8").split("\r\n")
         print(http_request)
 
         # split the start line
         http_method, request_target, http_version = http_request[0].split(" ")
 
-        if http_method == "GET":
-            print(http_method, request_target)
-            print ("Got a request of: %s\n" % self.data)
-            self.request.sendall(bytearray("200", "utf-8"))
-        else:
-            self.request.sendall(bytearray("405\n", 'utf-8'))
-        print("===========================")
+        if http_method != "GET": # donut allow POST, PUT or DELETE
+            self.request.sendall(bytearray("HTTP/1.1 405 Method Not Allowed\n", 'utf-8'))
+            return
+        
+        if request_target[-1] != "/":
+            self.request.sendall(bytearray("HTTP/1.1 301 Moved Permanently\n", 'utf-8'))
+            return
+        
+        request_target += "index.html"
+        
+        self.request.sendall(bytearray("HTTP/1.1 200 OK\n", 'utf-8'))
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
