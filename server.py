@@ -53,11 +53,26 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
         if rel_path.endswith('/'):
             rel_path += "index.html"
-        print(rel_path)
+        print("RELATIVE PATH:", rel_path)
         full_path = real_path + rel_path
-        print(full_path)
+        print("FULL PATH:", full_path)
 
-        self.request.sendall(bytearray("HTTP/1.1 200 OK\n", 'utf-8'))
+        self.serve_request(full_path)
+
+    def serve_request(self, path):
+        response = "HTTP/1.1 "
+        # try/catching FileNotFoundError from João Ventura
+        # https://www.codementor.io/@joaojonesventura/building-a-basic-http-server-from-scratch-in-python-1cedkg0842#404-not-found
+        try:
+            with open(path, 'r') as fi:
+                data = fi.read()
+                response += "200 OK\n"
+                response += "Contents:\n" + data
+                response += "=========================================================\n"
+                self.request.sendall(bytearray(response, 'utf-8'))
+
+        except FileNotFoundError:
+            self.request.sendall(bytearray(response + "404 File Not Found\n", 'utf-8'))
 
     def bad_path(self, request_target):
         is_file = '.' in request_target.split("/")[-1]
