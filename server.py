@@ -34,7 +34,6 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
         # decode and split
         http_request = self.data.decode("utf-8").split("\r\n")
-        print(http_request)
 
         # split the start line
         http_method, request_target, http_version = http_request[0].split(" ")
@@ -43,29 +42,22 @@ class MyWebServer(socketserver.BaseRequestHandler):
             self.request.sendall(bytearray("HTTP/1.1 405 Method Not Allowed\r\n", 'utf-8'))
             return
         
-        print(request_target)
         rel_path = "www" + request_target
         # https://stackoverflow.com/questions/5137497/find-current-directory-and-files-directory/44569198
         real_path = os.path.realpath(os.getcwd())
-        print("rel_path = ", rel_path)
-        print("real_path = ", real_path)
         full_path = real_path + "/" + rel_path
-        print("full_path = ", full_path)
 
-        if not os.getcwd() in os.path.realpath(full_path):
-            self.request.sendall(bytearray("HTTP/1.1 404 File Not Found\r\n", 'utf-8'))
-            return
-
+        if os.getcwd() in os.path.realpath(full_path):
         # https://stackoverflow.com/a/3204819 - os.path.isdir()
-        if os.path.isdir(rel_path):
-            self.process_path(full_path)
-            return
+            if os.path.isdir(rel_path):
+                self.process_path(full_path)
+                return
 
-        if os.path.isfile(rel_path):
-            self.serve_request(full_path)
-            return
+            if os.path.isfile(rel_path):
+                self.serve_request(full_path)
+                return
 
-        # if neither a dir or file then don't know what it is obvs
+        # if bad path
         self.request.sendall(bytearray("HTTP/1.1 404 File Not Found\r\n", 'utf-8'))
 
     def serve_request(self, path):
@@ -79,13 +71,13 @@ class MyWebServer(socketserver.BaseRequestHandler):
                 content_type = "Content-Type: text/css\r\n"
             elif ".html" in path:
                 content_type = "Content-Type: text/html\r\n"
-            # else: # REMOVE AND PROPERLY HANDLE THE BAD DIR THING
+            # else:
             #     raise FileNotFoundError
+
             with open(path, 'r') as fi:
                 data = fi.read()
                 response += "200 OK\r\n" + content_type + "\r\n"
                 response += "\n" + data + "\r\n"
-                response += "=========================================================\r\n"
                 self.request.sendall(bytearray(response, 'utf-8'))
 
         except FileNotFoundError:
@@ -97,7 +89,6 @@ class MyWebServer(socketserver.BaseRequestHandler):
             self.serve_request(path)
 
         else: # correct the target path
-            # print("does not end with / so 301 -_-")
             self.request.sendall(bytearray("HTTP/1.1 301 Moved Permanently\r\n", 'utf-8'))
 
 if __name__ == "__main__":
