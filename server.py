@@ -40,43 +40,51 @@ class MyWebServer(socketserver.BaseRequestHandler):
         http_method, request_target, http_version = http_request[0].split(" ")
 
         if http_method != "GET": # donut allow POST, PUT or DELETE
-            self.request.sendall(bytearray("HTTP/1.1 405 Method Not Allowed\n", 'utf-8'))
+            self.request.sendall(bytearray("HTTP/1.1 405 Method Not Allowed\r\n", 'utf-8'))
             return
         
-        if self.bad_path(request_target):
-            self.request.sendall(bytearray("HTTP/1.1 301 Moved Permanently\n", 'utf-8'))
-            return
-        
-        rel_path = "/www" + request_target
+        print(request_target)
+        rel_path = "www" + request_target
         # https://stackoverflow.com/questions/5137497/find-current-directory-and-files-directory/44569198
         real_path = os.path.realpath(os.getcwd())
 
-        if rel_path.endswith('/'):
-            rel_path += "index.html"
-        print("RELATIVE PATH:", rel_path)
-        full_path = real_path + rel_path
-        print("FULL PATH:", full_path)
+        # https://stackoverflow.com/a/3204819 - os.path.isdir()
+        # move code below into bad_path and refactor so that logic follows old logic from b4
+        if os.path.isdir(rel_path):
+            self.process_path(real_path + "/" + rel_path)
+            return
 
-        self.serve_request(full_path)
+        if os.path.isfile(rel_path):
+            self.serve_request(real_path + "/" + rel_path)
+            return
+
+        # if neither a dir or file then don't know what it is obvs
+        self.request.sendall(bytearray("HTTP/1.1 404 File Not Found\r\n", 'utf-8'))
 
     def serve_request(self, path):
         response = "HTTP/1.1 "
+        content_type = ""
         # try/catching FileNotFoundError from João Ventura
         # https://www.codementor.io/@joaojonesventura/building-a-basic-http-server-from-scratch-in-python-1cedkg0842#404-not-found
         try:
             with open(path, 'r') as fi:
                 data = fi.read()
-                response += "200 OK\n"
-                response += "Contents:\n" + data
-                response += "=========================================================\n"
+                response += "200 OK\r\n" + content_type + "\r\n"
+                response += "\n" + data + "\r\n"
+                response += "=========================================================\r\n"
                 self.request.sendall(bytearray(response, 'utf-8'))
 
         except FileNotFoundError:
-            self.request.sendall(bytearray(response + "404 File Not Found\n", 'utf-8'))
+            self.request.sendall(bytearray(response + "404 File Not Found\r\n", 'utf-8'))
+    
+    def process_path(self, path):
+        if path.endswith('/'):
+            path += "index.html"
+            self.serve_request(path)
 
-    def bad_path(self, request_target):
-        is_file = '.' in request_target.split("/")[-1]
-        return request_target[-1] != '/' and not is_file
+        else: # correct the target path
+            # print("does not end with / so 301 -_-")
+            self.request.sendall(bytearray("HTTP/1.1 301 Moved Permanently\r\n", 'utf-8'))
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
