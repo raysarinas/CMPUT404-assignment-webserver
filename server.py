@@ -47,15 +47,22 @@ class MyWebServer(socketserver.BaseRequestHandler):
         rel_path = "www" + request_target
         # https://stackoverflow.com/questions/5137497/find-current-directory-and-files-directory/44569198
         real_path = os.path.realpath(os.getcwd())
+        print("rel_path = ", rel_path)
+        print("real_path = ", real_path)
+        full_path = real_path + "/" + rel_path
+        print("full_path = ", full_path)
+
+        if not os.getcwd() in os.path.realpath(full_path):
+            self.request.sendall(bytearray("HTTP/1.1 404 File Not Found\r\n", 'utf-8'))
+            return
 
         # https://stackoverflow.com/a/3204819 - os.path.isdir()
-        # move code below into bad_path and refactor so that logic follows old logic from b4
         if os.path.isdir(rel_path):
-            self.process_path(real_path + "/" + rel_path)
+            self.process_path(full_path)
             return
 
         if os.path.isfile(rel_path):
-            self.serve_request(real_path + "/" + rel_path)
+            self.serve_request(full_path)
             return
 
         # if neither a dir or file then don't know what it is obvs
@@ -72,8 +79,8 @@ class MyWebServer(socketserver.BaseRequestHandler):
                 content_type = "Content-Type: text/css\r\n"
             elif ".html" in path:
                 content_type = "Content-Type: text/html\r\n"
-            else: # REMOVE AND PROPERLY HANDLE THE BAD DIR THING
-                raise FileNotFoundError
+            # else: # REMOVE AND PROPERLY HANDLE THE BAD DIR THING
+            #     raise FileNotFoundError
             with open(path, 'r') as fi:
                 data = fi.read()
                 response += "200 OK\r\n" + content_type + "\r\n"
