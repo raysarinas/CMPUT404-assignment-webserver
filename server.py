@@ -67,6 +67,13 @@ class MyWebServer(socketserver.BaseRequestHandler):
         # try/catching FileNotFoundError from João Ventura
         # https://www.codementor.io/@joaojonesventura/building-a-basic-http-server-from-scratch-in-python-1cedkg0842#404-not-found
         try:
+            # MIME types https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types
+            if ".css" in path:
+                content_type = "Content-Type: text/css\r\n"
+            elif ".html" in path:
+                content_type = "Content-Type: text/html\r\n"
+            else: # REMOVE AND PROPERLY HANDLE THE BAD DIR THING
+                raise FileNotFoundError
             with open(path, 'r') as fi:
                 data = fi.read()
                 response += "200 OK\r\n" + content_type + "\r\n"
