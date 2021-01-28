@@ -41,16 +41,16 @@ class MyWebServer(socketserver.BaseRequestHandler):
         if http_method != "GET": # donut allow POST, PUT or DELETE
             self.request.sendall(bytearray("HTTP/1.1 405 Method Not Allowed\r\n", 'utf-8'))
             return
-        
-        rel_path = "www" + request_target
+
         # https://stackoverflow.com/questions/5137497/find-current-directory-and-files-directory/44569198
+        rel_path = "www" + request_target
         real_path = os.path.realpath(os.getcwd())
         full_path = real_path + "/" + rel_path
 
         if os.getcwd() in os.path.realpath(full_path):
         # https://stackoverflow.com/a/3204819 - os.path.isdir()
             if os.path.isdir(rel_path):
-                self.process_path(full_path)
+                self.process_path(full_path, request_target)
                 return
 
             if os.path.isfile(rel_path):
@@ -83,13 +83,13 @@ class MyWebServer(socketserver.BaseRequestHandler):
         except FileNotFoundError:
             self.request.sendall(bytearray(response + "404 File Not Found\r\n", 'utf-8'))
     
-    def process_path(self, path):
+    def process_path(self, path, target):
         if path.endswith('/'):
             path += "index.html"
             self.serve_request(path)
 
         else: # correct the target path
-            self.request.sendall(bytearray("HTTP/1.1 301 Moved Permanently\r\n", 'utf-8'))
+            self.request.sendall(bytearray(f"HTTP/1.1 301 Moved Permanently\r\nLocation: {target}\r\n", 'utf-8'))
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
