@@ -40,7 +40,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
         http_method, request_target, http_version = http_request[0].split(" ")
 
         if http_method != "GET": # donut allow POST, PUT or DELETE
-            self.request.sendall(bytearray("HTTP/1.1 405 Method Not Allowed\r\n", 'utf-8'))
+            self.request.sendall(bytearray("HTTP/1.1 405 Method Not Allowed\r\nConnection: close\r\n", 'utf-8'))
             return
 
         # os.path stuff from Russell Dias https://stackoverflow.com/users/322129/
@@ -63,7 +63,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
                 return
 
         # if bad path
-        self.request.sendall(bytearray("HTTP/1.1 404 File Not Found\r\n", 'utf-8'))
+        self.request.sendall(bytearray("HTTP/1.1 404 File Not Found\r\nConnection: close\r\n", 'utf-8'))
 
     def serve_request(self, path):
         content_type = ""
@@ -82,13 +82,13 @@ class MyWebServer(socketserver.BaseRequestHandler):
             with open(path, 'r') as fi:
                 data = fi.read()
                 response = "HTTP/1.1 200 OK\r\n"
-                response += content_type + "\r\n"
                 response += "Connection: close\r\n"
+                response += content_type + "\r\n"
                 response += "\n" + data + "\r\n"
                 self.request.sendall(bytearray(response, 'utf-8'))
 
         except FileNotFoundError:
-            self.request.sendall(bytearray("HTTP/1.1 404 File Not Found\r\n", 'utf-8'))
+            self.request.sendall(bytearray("HTTP/1.1 404 File Not Found\r\nConnection: close\r\n", 'utf-8'))
     
     def process_path(self, path, target):
         if path.endswith('/'):
@@ -96,7 +96,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
             self.serve_request(path)
 
         else: # correct the target path
-            self.request.sendall(bytearray(f"HTTP/1.1 301 Moved Permanently\r\nLocation: {target}/\r\n", 'utf-8'))
+            self.request.sendall(bytearray(f"HTTP/1.1 301 Moved Permanently\r\nConnection: close\r\nLocation: {target}/\r\n", 'utf-8'))
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
