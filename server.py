@@ -36,19 +36,24 @@ class MyWebServer(socketserver.BaseRequestHandler):
         http_request = self.data.decode("utf-8").split("\r\n")
 
         # split the start line
+        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages
         http_method, request_target, http_version = http_request[0].split(" ")
 
         if http_method != "GET": # donut allow POST, PUT or DELETE
             self.request.sendall(bytearray("HTTP/1.1 405 Method Not Allowed\r\n", 'utf-8'))
             return
 
-        # https://stackoverflow.com/questions/5137497/find-current-directory-and-files-directory/44569198
+        # os.path stuff from Russell Dias https://stackoverflow.com/users/322129/
+        # https://stackoverflow.com/a/5137509
+        # https://docs.python.org/3.7/library/os.path.html
         rel_path = "www" + request_target
         real_path = os.path.realpath(os.getcwd())
         full_path = real_path + "/" + rel_path
 
+        # checking if path or file from Jesse Jashinsky https://stackoverflow.com/users/349415/
+        # https://stackoverflow.com/a/3204819
+        # https://docs.python.org/3.7/library/os.html
         if os.getcwd() in os.path.realpath(full_path):
-        # https://stackoverflow.com/a/3204819 - os.path.isdir()
             if os.path.isdir(rel_path):
                 self.process_path(full_path, request_target)
                 return
@@ -61,12 +66,12 @@ class MyWebServer(socketserver.BaseRequestHandler):
         self.request.sendall(bytearray("HTTP/1.1 404 File Not Found\r\n", 'utf-8'))
 
     def serve_request(self, path):
-        response = "HTTP/1.1 "
         content_type = ""
-        # try/catching FileNotFoundError from João Ventura
+
+        # try/catching FileNotFoundError from João Ventura https://www.codementor.io/@joaojonesventura/
         # https://www.codementor.io/@joaojonesventura/building-a-basic-http-server-from-scratch-in-python-1cedkg0842#404-not-found
+        # MIME types https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types
         try:
-            # MIME types https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types
             if ".css" in path:
                 content_type = "Content-Type: text/css\r\n"
             elif ".html" in path:
@@ -76,12 +81,13 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
             with open(path, 'r') as fi:
                 data = fi.read()
-                response += "200 OK\r\n" + content_type + "\r\n"
+                response = "HTTP/1.1 200 OK\r\n"
+                response += content_type + "\r\n"
                 response += "\n" + data + "\r\n"
                 self.request.sendall(bytearray(response, 'utf-8'))
 
         except FileNotFoundError:
-            self.request.sendall(bytearray(response + "404 File Not Found\r\n", 'utf-8'))
+            self.request.sendall(bytearray("HTTP/1.1 404 File Not Found\r\n", 'utf-8'))
     
     def process_path(self, path, target):
         if path.endswith('/'):
