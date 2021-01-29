@@ -83,6 +83,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
                 data = fi.read()
                 response = "HTTP/1.1 200 OK\r\n"
                 response += content_type + "\r\n"
+                response += "Connection: close\r\n"
                 response += "\n" + data + "\r\n"
                 self.request.sendall(bytearray(response, 'utf-8'))
 
@@ -95,7 +96,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
             self.serve_request(path)
 
         else: # correct the target path
-            self.request.sendall(bytearray(f"HTTP/1.1 301 Moved Permanently\r\nLocation: {target}\r\n", 'utf-8'))
+            self.request.sendall(bytearray(f"HTTP/1.1 301 Moved Permanently\r\nLocation: {target}/\r\n", 'utf-8'))
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
